@@ -1125,7 +1125,7 @@ class Features(object):
     return self._requested_races
 
   @sw.decorate
-  def transform_obs(self, obs):
+  def transform_obs(self, obs, prev_feats=None):
     """Render some SC2 observations into something an agent can handle."""
     empty_unit = np.array([], dtype=np.int32).reshape((0, len(UnitLayer)))
     out = named_array.NamedDict({  # Fill out some that are sometimes empty.
@@ -1176,6 +1176,11 @@ class Features(object):
       with sw("last_actions"):
         out["last_actions"] = np.array(
             [self.reverse_action(a).function for a in obs.actions],
+            dtype=np.int32)
+    elif prev_feats:
+      with sw("last_actions"):
+        out["last_actions"] = np.array(
+            [self.reverse_raw_action(a, prev_feats).function for a in obs.actions],
             dtype=np.int32)
 
     out["action_result"] = np.array([o.result for o in obs.action_errors],
@@ -1517,9 +1522,8 @@ class Features(object):
       out["camera_size"] = np.array((self._camera_size.x, self._camera_size.y),
                                     dtype=np.int32)
 
-    if not self._raw:
-      out["available_actions"] = np.array(
-          self.available_actions(obs.observation), dtype=np.int32)
+    out["available_actions"] = np.array(
+        self.available_actions(obs.observation), dtype=np.int32)
 
     if self._requested_races is not None:
       out["home_race_requested"] = np.array(
@@ -1547,21 +1551,25 @@ class Features(object):
     """Return the list of available action ids."""
     available_actions = set()
     hide_specific_actions = self._agent_interface_format.hide_specific_actions
-    for i, func in six.iteritems(actions.FUNCTIONS_AVAILABLE):
+    # distinguish between action and raw action interface
+    funcs_available = actions.RAW_FUNCTIONS_AVAILABLE if self._raw else actions.FUNCTIONS_AVAILABLE
+    ability_ids = actions.RAW_ABILITY_IDS if self._raw else actions.ABILITY_IDS
+    point_required_funcs = actions.POINT_REQUIRED_RAW_FUNCS if self._raw else actions.POINT_REQUIRED_FUNCS
+    for i, func in six.iteritems(funcs_available):
       if func.avail_fn(obs):
         available_actions.add(i)
     for a in obs.abilities:
-      if a.ability_id not in actions.ABILITY_IDS:
+      if a.ability_id not in ability_ids:
         logging.warning("Unknown ability %s seen as available.", a.ability_id)
         continue
       found_applicable = False
-      for func in actions.ABILITY_IDS[a.ability_id]:
-        if func.function_type in actions.POINT_REQUIRED_FUNCS[a.requires_point]:
+      for func in ability_ids[a.ability_id]:
+        if func.function_type in point_required_funcs[a.requires_point]:
           if func.general_id == 0 or not hide_specific_actions:
             available_actions.add(func.id)
             found_applicable = True
           if func.general_id != 0:  # Always offer generic actions.
-            for general_func in actions.ABILITY_IDS[func.general_id]:
+            for general_func in ability_ids[func.general_id]:
               if general_func.function_type is func.function_type:
                 # Only the right type. Don't want to expose the general action
                 # to minimap if only the screen version is available.

@@ -461,6 +461,9 @@ RAW_ABILITY_FUNCTIONS = {raw_cmd, raw_cmd_pt, raw_cmd_unit, raw_autocast}
 POINT_REQUIRED_FUNCS = {
     False: {cmd_quick, autocast},
     True: {cmd_screen, cmd_minimap, autocast}}
+POINT_REQUIRED_RAW_FUNCS = {
+    False: {raw_cmd, raw_autocast},
+    True: {raw_cmd_pt, raw_cmd_unit, raw_autocast}}
 
 always = lambda _: True
 
