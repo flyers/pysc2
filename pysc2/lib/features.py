@@ -1151,12 +1151,12 @@ class Features(object):
     aif = self._agent_interface_format
 
     if aif.feature_dimensions:
-      with sw("feature_screen"):
-        out["feature_screen"] = named_array.NamedNumpyArray(
-            np.stack([or_zeros(f.unpack(obs.observation),
-                               aif.feature_dimensions.screen)
-                      for f in SCREEN_FEATURES]),
-            names=[ScreenFeatures, None, None])
+      # with sw("feature_screen"):
+      #   out["feature_screen"] = named_array.NamedNumpyArray(
+      #       np.stack([or_zeros(f.unpack(obs.observation),
+      #                          aif.feature_dimensions.screen)
+      #                 for f in SCREEN_FEATURES]),
+      #       names=[ScreenFeatures, None, None])
       with sw("feature_minimap"):
         out["feature_minimap"] = named_array.NamedNumpyArray(
             np.stack([or_zeros(f.unpack(obs.observation),
@@ -1177,18 +1177,18 @@ class Features(object):
         out["last_actions"] = np.array(
             [self.reverse_action(a).function for a in obs.actions],
             dtype=np.int32)
-    elif prev_feats:
+    else:
       with sw("last_actions"):
         out["last_actions"] = np.array(
             [self.reverse_raw_action(a, prev_feats).function for a in obs.actions],
             dtype=np.int32)
 
-    out["action_result"] = np.array([o.result for o in obs.action_errors],
-                                    dtype=np.int32)
+    # out["action_result"] = np.array([o.result for o in obs.action_errors],
+    #                                 dtype=np.int32)
 
-    out["alerts"] = np.array(obs.observation.alerts, dtype=np.int32)
+    # out["alerts"] = np.array(obs.observation.alerts, dtype=np.int32)
 
-    out["game_loop"] = np.array([obs.observation.game_loop], dtype=np.int32)
+    # out["game_loop"] = np.array([obs.observation.game_loop], dtype=np.int32)
 
     with sw("score"):
       score_details = obs.observation.score.score_details
@@ -1250,37 +1250,37 @@ class Features(object):
 
     ui = obs.observation.ui_data
 
-    with sw("ui"):
-      groups = np.zeros((10, 2), dtype=np.int32)
-      for g in ui.groups:
-        groups[g.control_group_index, :] = (g.leader_unit_type, g.count)
-      out["control_groups"] = groups
+    # with sw("ui"):
+    #   groups = np.zeros((10, 2), dtype=np.int32)
+    #   for g in ui.groups:
+    #     groups[g.control_group_index, :] = (g.leader_unit_type, g.count)
+    #   out["control_groups"] = groups
 
-      if ui.HasField("single"):
-        out["single_select"] = named_array.NamedNumpyArray(
-            [unit_vec(ui.single.unit)], [None, UnitLayer])
-      elif ui.HasField("multi"):
-        out["multi_select"] = named_array.NamedNumpyArray(
-            [unit_vec(u) for u in ui.multi.units], [None, UnitLayer])
-      elif ui.HasField("cargo"):
-        out["single_select"] = named_array.NamedNumpyArray(
-            [unit_vec(ui.cargo.unit)], [None, UnitLayer])
-        out["cargo"] = named_array.NamedNumpyArray(
-            [unit_vec(u) for u in ui.cargo.passengers], [None, UnitLayer])
-        out["cargo_slots_available"] = np.array([ui.cargo.slots_available],
-                                                dtype=np.int32)
-      elif ui.HasField("production"):
-        out["single_select"] = named_array.NamedNumpyArray(
-            [unit_vec(ui.production.unit)], [None, UnitLayer])
-        if ui.production.build_queue:
-          out["build_queue"] = named_array.NamedNumpyArray(
-              [unit_vec(u) for u in ui.production.build_queue],
-              [None, UnitLayer], dtype=np.int32)
-        if ui.production.production_queue:
-          out["production_queue"] = named_array.NamedNumpyArray(
-              [(item.ability_id, item.build_progress * 100)
-               for item in ui.production.production_queue],
-              [None, ProductionQueue], dtype=np.int32)
+    #   if ui.HasField("single"):
+    #     out["single_select"] = named_array.NamedNumpyArray(
+    #         [unit_vec(ui.single.unit)], [None, UnitLayer])
+    #   elif ui.HasField("multi"):
+    #     out["multi_select"] = named_array.NamedNumpyArray(
+    #         [unit_vec(u) for u in ui.multi.units], [None, UnitLayer])
+    #   elif ui.HasField("cargo"):
+    #     out["single_select"] = named_array.NamedNumpyArray(
+    #         [unit_vec(ui.cargo.unit)], [None, UnitLayer])
+    #     out["cargo"] = named_array.NamedNumpyArray(
+    #         [unit_vec(u) for u in ui.cargo.passengers], [None, UnitLayer])
+    #     out["cargo_slots_available"] = np.array([ui.cargo.slots_available],
+    #                                             dtype=np.int32)
+    #   elif ui.HasField("production"):
+    #     out["single_select"] = named_array.NamedNumpyArray(
+    #         [unit_vec(ui.production.unit)], [None, UnitLayer])
+    #     if ui.production.build_queue:
+    #       out["build_queue"] = named_array.NamedNumpyArray(
+    #           [unit_vec(u) for u in ui.production.build_queue],
+    #           [None, UnitLayer], dtype=np.int32)
+    #     if ui.production.production_queue:
+    #       out["production_queue"] = named_array.NamedNumpyArray(
+    #           [(item.ability_id, item.build_progress * 100)
+    #            for item in ui.production.production_queue],
+    #           [None, ProductionQueue], dtype=np.int32)
 
     tag_types = {}  # Only populate the cache if it's needed.
     def get_addon_type(tag):
@@ -1532,13 +1532,13 @@ class Features(object):
         if player_id != player.player_id:
           out["away_race_requested"] = np.array((race,), dtype=np.int32)
 
-    if aif.use_feature_units or aif.use_raw_units:
-      def transform_radar(radar):
-        p = self._world_to_minimap_px.fwd_pt(point.Point.build(radar.pos))
-        return p.x, p.y, radar.radius
-      out["radar"] = named_array.NamedNumpyArray(
-          list(map(transform_radar, obs.observation.raw_data.radar)),
-          [None, Radar], dtype=np.int32)
+    # if aif.use_feature_units or aif.use_raw_units:
+    #   def transform_radar(radar):
+    #     p = self._world_to_minimap_px.fwd_pt(point.Point.build(radar.pos))
+    #     return p.x, p.y, radar.radius
+    #   out["radar"] = named_array.NamedNumpyArray(
+    #       list(map(transform_radar, obs.observation.raw_data.radar)),
+    #       [None, Radar], dtype=np.int32)
 
     # Send the entire proto as well (in a function, so it isn't copied).
     if self._send_observation_proto:
@@ -1802,6 +1802,8 @@ class Features(object):
       ValueError: if it doesn't know how to transform this action.
     """
     aif = self._agent_interface_format
+    if not prev_obs:
+      return actions.RAW_FUNCTIONS.no_op()
     raw_tags = prev_obs["raw_units"][:, FeatureUnit.tag]
     def find_tag_position(original_tag):
       for i, tag in enumerate(raw_tags):
