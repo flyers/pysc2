@@ -1770,6 +1770,17 @@ RAW_ABILITY_IDS = {k: frozenset(v) for k, v in six.iteritems(RAW_ABILITY_IDS)}
 RAW_FUNCTIONS_AVAILABLE = {f.id: f for f in RAW_FUNCTIONS if f.avail_fn}
 RAW_ABILITY_ID_TO_FUNC_ID = {k: min(f.id for f in v)  # pylint: disable=g-complex-comprehension
                              for k, v in six.iteritems(RAW_ABILITY_IDS)}
+_Is_Building_Ability_Ids = [
+    331, 882, 1162, 321, 324, 318, 3691, 1694, 1733, 894, 891, 322, 1156,
+    1154, 328, 885, 884, 333, 883, 327, 1152, 1157, 1160, 1163, 323, 880,
+    1161, 1768, 887, 881, 3683, 422, 455, 488, 320, 1165, 892, 893, 326, 895,
+    1155, 1166, 1158, 1167, 889, 329, 2505, 319, 3682, 421, 454, 487, 890,
+    886, 1159
+]
+IS_BUILDING_RAW_FUNCTION_IDS = [
+  func.id for func in RAW_FUNCTIONS if func.ability_id in _Is_Building_Ability_Ids
+]
+IS_BUILDING_RAW_FUNCTION_IDS.insert(0, -1)
 
 
 class FunctionCall(collections.namedtuple(

@@ -1183,12 +1183,12 @@ class Features(object):
             [self.reverse_raw_action(a, prev_feats).function for a in obs.actions],
             dtype=np.int32)
 
-    # out["action_result"] = np.array([o.result for o in obs.action_errors],
-    #                                 dtype=np.int32)
+    out["action_result"] = np.array([o.result for o in obs.action_errors],
+                                    dtype=np.int32)
 
-    # out["alerts"] = np.array(obs.observation.alerts, dtype=np.int32)
+    out["alerts"] = np.array(obs.observation.alerts, dtype=np.int32)
 
-    # out["game_loop"] = np.array([obs.observation.game_loop], dtype=np.int32)
+    out["game_loop"] = np.array([obs.observation.game_loop], dtype=np.int32)
 
     with sw("score"):
       score_details = obs.observation.score.score_details
@@ -1294,11 +1294,17 @@ class Features(object):
       screen_pos = pos_transform.fwd_pt(
           point.Point.build(u.pos))
       screen_radius = pos_transform.fwd_dist(u.radius)
-      def raw_order(i):
+      def raw_order(i, filter_building=False):
         if len(u.orders) > i:
           # TODO(tewalds): Return a generalized func id.
-          return actions.RAW_ABILITY_ID_TO_FUNC_ID.get(
+          func_id = actions.RAW_ABILITY_ID_TO_FUNC_ID.get(
               u.orders[i].ability_id, 0)
+          if filter_building:
+            try:
+              func_id = actions.IS_BUILDING_RAW_FUNCTION_IDS.index(func_id)
+            except ValueError:
+              return 0
+          return func_id
         return 0
       features = [
           # Match unit_vec order
@@ -1334,7 +1340,7 @@ class Features(object):
           u.weapon_cooldown,
           len(u.orders),
           raw_order(0),
-          raw_order(1),
+          raw_order(1, filter_building=True),
           u.tag if is_raw else 0,
           u.is_hallucination,
           u.buff_ids[0] if len(u.buff_ids) >= 1 else 0,
@@ -1344,8 +1350,8 @@ class Features(object):
           u.is_on_screen,
           int(u.orders[0].progress * 100) if len(u.orders) >= 1 else 0,
           int(u.orders[1].progress * 100) if len(u.orders) >= 2 else 0,
-          raw_order(2),
-          raw_order(3),
+          raw_order(2, filter_building=True),
+          raw_order(3, filter_building=True),
           0,
           u.buff_duration_remain,
           u.buff_duration_max,
