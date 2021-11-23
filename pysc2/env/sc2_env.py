@@ -310,6 +310,7 @@ class SC2Env(environment.Base):
     self._episode_count = 0
     self._obs = [None] * self._num_agents
     self._agent_obs = [None] * self._num_agents
+    self._prev_agent_obs = [None] * self._num_agents
     self._state = environment.StepType.LAST  # Want to jump to `reset`.
     logging.info("Environment is ready")
 
@@ -627,16 +628,17 @@ class SC2Env(environment.Base):
 
   def _get_observations(self, target_game_loop):
     # Transform in the thread so it runs while waiting for other observations.
-    def parallel_observe(c, f):
+    def parallel_observe(c, f, p):
       obs = c.observe(target_game_loop=target_game_loop)
-      agent_obs = f.transform_obs(obs)
+      agent_obs = f.transform_obs(obs, prev_feats=p)
       return obs, agent_obs
 
     with self._metrics.measure_observation_time():
       self._obs, self._agent_obs = zip(*self._parallel.run(
-          (parallel_observe, c, f)
-          for c, f in zip(self._controllers, self._features)))
+          (parallel_observe, c, f, p)
+          for c, f, p in zip(self._controllers, self._features, self._prev_agent_obs)))
 
+    self._prev_agent_obs = [x for x in self._agent_obs]
     game_loop = self._agent_obs[0].game_loop[0]
     if (game_loop < target_game_loop and
         not any(o.player_result for o in self._obs)):
