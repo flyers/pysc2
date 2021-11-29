@@ -503,7 +503,7 @@ class Function(collections.namedtuple(
 
   @classmethod
   def raw_ability(cls, id_, name, function_type, ability_id, general_id=0,
-                  avail_fn=always):
+                  avail_fn=None):
     """Define a function represented as a game ability."""
     assert function_type in RAW_ABILITY_FUNCTIONS
     return cls(id_, name, ability_id, general_id, function_type,
